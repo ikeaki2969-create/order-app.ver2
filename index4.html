@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注文＆会計システム</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f7f9fa; margin: 0; padding: 20px; display: flex; }
+        .menu-area { flex: 2; padding-right: 20px; }
+        .order-area { flex: 1; background-color: #ffffff; border-left: 4px solid #ccc; padding: 20px; }
+        .table-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .table-button { height: 50px; font-size: 15px; font-weight: bold; background-color: #fff; border: 2px solid #ccc; border-radius: 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .table-button.active { background-color: #1e88e5; color: white; border-color: #0d47a1; }
+        
+        /* セクション色分け */
+        .btn-maru { border-color: #ffb74d; background-color: #fff8e1; } 
+        .btn-counter { border-color: #26a69a; background-color: #e0f2f1; } 
+        .btn-mochi { border-color: #81c784; background-color: #f1f8e9; } 
+        
+        .tab-container { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-button { flex: 1; height: 60px; font-size: 20px; font-weight: bold; background-color: #fff; border: 2px solid #ccc; border-radius: 8px; cursor: pointer; }
+        .tab-button.active { background-color: #1e88e5; color: white; border-color: #0d47a1; }
+        .menu-grid { display: flex; flex-wrap: wrap; gap: 15px; }
+        .menu-button { width: 180px; height: 100px; font-size: 20px; font-weight: bold; background-color: #ff9800; color: white; border: none; border-radius: 12px; cursor: pointer; }
+        #target-table-display { font-size: 24px; color: #1e88e5; font-weight: bold; background-color: #e3f2fd; padding: 10px; border-radius: 5px; text-align: center; }
+        #order-list { font-size: 20px; line-height: 1.8; }
+        .total-price-box { background-color: #f5f5f5; border: 2px solid #333; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: right; }
+        .submit-button { width: 100%; height: 65px; font-size: 22px; background-color: #4caf50; color: white; border: none; border-radius: 10px; margin-top: 15px; font-weight: bold; cursor: pointer; }
+        .print-btn-area { margin-top: 15px; background-color: #fff3e0; padding: 15px; border-radius: 10px; }
+        .print-button { width: 100%; height: 50px; font-size: 18px; color: white; border: none; border-radius: 8px; margin-bottom: 10px; cursor: pointer; font-weight: bold; }
+        .btn-settle { background-color: #ff5722; font-size: 22px; height: 60px; }
+        .sales-management-area { margin-top: 30px; padding: 15px; background-color: #eceff1; border-radius: 10px; }
+        .btn-sales-calc { width: 48%; height: 45px; background-color: #607d8b; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .btn-sales-print { width: 48%; height: 45px; background-color: #009688; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; margin-left: 2%; }
+        .paid-list-container { margin-top: 15px; background-color: #ffffff; border: 1px solid #cfd8dc; border-radius: 8px; padding: 10px; max-height: 200px; overflow-y: auto; }
+        .paid-item { font-size: 15px; border-bottom: 1px solid #eceff1; padding: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+        .paid-item-btns button { font-size: 13px; padding: 4px 8px; margin-left: 5px; border: none; border-radius: 4px; cursor: pointer; color: white; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .opt-button { width: 110px; height: 50px; font-size: 18px; margin: 5px; cursor: pointer; font-weight: bold; background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 5px; }
+        .opt-button.selected { background-color: #2196f3; color: white; border-color: #0b7dda; }
+        .settle-input-field { width: 85%; height: 50px; font-size: 32px; font-weight: bold; text-align: right; padding: 5px 15px; margin: 10px 0; border: 2px solid #ff5722; border-radius: 10px; background-color: #fafafa; }
+        .change-display-box { background-color: #fff3e0; border: 2px solid #ffb74d; padding: 10px 15px; border-radius: 10px; margin: 10px 0; font-size: 22px; font-weight: bold; color: #e65100; text-align: center; }
+        .change-amount { font-size: 34px; color: #d84315; }
+        .keypad-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
+        .keypad-button { height: 60px; font-size: 22px; font-weight: bold; background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 10px; cursor: pointer; user-select: none; }
+        .keypad-button:active { background-color: #e0e0e0; }
+        .keypad-button.fn-key { background-color: #ffe0b2; color: #e65100; font-size: 16px; }
+        .keypad-button.clear-key { background-color: #ffcdd2; color: #b71c1c; }
+        .kitchen-print-header, .kitchen-print-footer, .receipt-print-area, .sales-report-print-area { display: none; }
+
+        @media print {
+            body { background-color: #fff; color: #000; display: block; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .menu-area, .submit-button, .print-btn-area, .sales-management-area, #target-table-display, .total-price-box, .modal-overlay { display: none !important; }
+            body.print-kitchen .order-area { border-left: none; width: 100%; max-width: 400px; margin: 0 auto; padding: 0; display: block !important; }
+            body.print-kitchen .kitchen-print-header { display: block !important; text-align: center; font-weight: bold; }
+            body.print-kitchen .kitchen-print-header h2 { font-size: 32px; margin: 0 0 5px 0; border-bottom: 3px solid #000; padding-bottom: 5px; }
+            body.print-kitchen #print-table-name { font-size: 38px; background-color: #f0f0f0; border: 3px solid #000; padding: 5px; margin: 10px 0; }
+            body.print-kitchen #order-list { font-size: 24px !important; list-style: none; padding: 0; margin: 15px 0; font-weight: bold; display: block !important; }
+            body.print-kitchen #order-list li { border-bottom: 2px dashed #000; padding: 8px 0; }
+            body.print-kitchen .alert-text { color: #ff0000 !important; font-weight: bold; }
+            body.print-kitchen .kitchen-print-footer { display: block !important; text-align: right; margin-top: 20px; padding-top: 10px; border-top: 3px solid #000; }
+            body.print-kitchen .kitchen-print-footer h3 { font-size: 30px; margin: 0; }
+            
+            body.print-receipt .order-area { display: none !important; }
+            body.print-receipt .receipt-print-area { display: block !important; width: 100%; max-width: 450px; margin: 0 auto; padding: 10px; font-family: serif; color: #000; }
+            body.print-receipt .receipt-title { text-align: center; font-size: 36px; font-weight: bold; letter-spacing: 5px; margin-bottom: 20px; }
+            body.print-receipt .receipt-row { font-size: 18px; margin: 10px 0; }
+            body.print-receipt .receipt-client-name { text-align: right; font-size: 22px; margin-top: 20px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+            body.print-receipt .receipt-amount-box { border-bottom: 3px double #000; border-top: 1px solid #000; text-align: center; font-size: 32px; font-weight: bold; padding: 15px 0; margin: 20px 0; }
+            body.print-receipt .receipt-shop-info { text-align: right; margin-top: 40px; font-size: 16px; line-height: 1.5; }
+            
+            body.print-sales-report .order-area { display: none !important; }
+            body.print-sales-report .sales-report-print-area { display: block !important; width: 100%; max-width: 500px; margin: 0 auto; padding: 10px; color: #000; }
+            body.print-sales-report .report-header { text-align: center; font-weight: bold; border-bottom: 4px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+            body.print-sales-report .report-header h2 { font-size: 34px; margin: 0; }
+            body.print-sales-report .report-summary-box { background-color: #f0f0f0; border: 2px solid #000; padding: 15px; margin-bottom: 20px; font-size: 22px; font-weight: bold; }
+            body.print-sales-report .report-list-item { font-size: 16px; border-bottom: 1px dashed #000; padding: 10px 0; line-height: 1.4; }
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_tzsH1GJRoorl7co3_hrB5fj0T_iyjFA",
+            authDomain: "my-order-app-9aad9.firebaseapp.com",
+            projectId: "my-order-app-9aad9",
+            storageBucket: "my-order-app-9aad9.firebasestorage.app",
+            messagingSenderId: "591672365983",
+            appId: "1:591672365983:web:c93f694b3699ef393363aa"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const simpleMenuNames = [
+            'そばめし', 'チーズおこのみ', 'カレーやきそば', 'カレーライス', 'ナポリタン', 'ミートスパゲッティ', 'カレースパゲッティ',
+            'やきにく定食', 'ハムエッグ定食', '野菜いため定食',
+            'ごはん', 'みそ汁', 'コンソメスープ', 'たまごスープ', 'ミニサラダ', 'サラダ', 'ハムエッグ', '野菜いため', 'やきにく'
+        ];
+
+        const menuData = {
+            '飲み物': [
+                { name: 'ブレンドコーヒー', price: 450 },
+                { name: 'アメリカンコーヒー', price: 450},
+                { name: 'ウィンナーコーヒー', price:500},
+                
+                { name: 'カフェオーレ', price: 500 },
+                { name: 'アイスコーヒー', price: 500 },
+                { name: 'アイスオーレ', price: 550 },
+                { name: 'モカマタリ', price: 480 },
+                { name: 'ブラジル', price: 480 },
+                { name: 'トアルコトラジャ', price: 500 },
+                { name: '紅茶', price: 450 },
+                { name: 'ミルクティー', price: 500 },
+                { name: 'レモンティー', price: 500 },
+                { name: 'アイスティー', price: 500 },
+                { name: 'ココア', price: 500 },
+                { name: 'アイスココア', price: 500 },
+                { name: 'アイスチョコレート', price: 500 },
+                { name: 'チョコレート', price: 500 },
+                { name: 'アイスミルク', price: 450 },
+                { name: 'ミルク', price: 450 },
+                { name: 'ミルクセーキ', price: 500 },
+                { name: 'バナナジュース', price: 500 },
+                { name: 'トマトジュース', price: 500 },
+                { name: 'メロンジュース', price: 550 },
+                { name: 'ミックスジュース', price: 550 },
+                { name: 'クリームソーダ', price: 630 },
+                { name: 'コーヒーフロート', price: 660 },
+                { name: 'ソーダウォーター', price: 500 },
+                { name: 'レモンスカッシュ', price: 600 },
+                { name: 'レモンロック', price: 600 },                ],
+            '喫茶': [
+                { name: 'モーニングサービス', price: 450 },
+                { name: 'バタートースト', price: 350 },
+                { name: 'ジャムトースト', price: 400 },
+                { name: 'あんトースト', price: 450 },
+                { name: 'ハムトースト', price: 500 },
+                { name: 'チーズトースト', price: 500 },
+                { name: 'たまごサンド', price: 550 },
+                { name: 'やさいサンド', price: 550 },
+                { name: 'ハムサンド', price: 550 },
+                { name: 'ミックスサンド', price: 600 },
+                { name: 'チーズケーキ', price: 500 },
+                { name: 'チョコレートパフェ', price: 500 },
+                { name: 'フルーツパフェ', price: 500 },
+                { name: '小倉パフェ', price: 500 },
+                { name: 'アイスクリーム', price: 500 },
+                { name: 'あんみつ', price: 500 },
+                { name: 'みつまめ', price: 500 },
+                { name: '限定ケーキ', price: 500 },
+                { name: 'メロン', price: 500 }
+            ],
+            '食事': [
+                { name: 'ランチタイムサービスのやきそば', price: 0 }, 
+                { name: 'ランチおこのみ', price: 0 },
+                { name: 'ランチうどん', price: 0 },
+                { name: 'やきそばセット', price: 0 },
+                { name: 'おこのみセット', price: 0 },
+                { name: 'うどんセット', price: 0 },
+                { name: 'コーヒー付きやきそば', price: 0 },
+                { name: 'コーヒー付きおこのみ', price: 0 },
+                { name: 'コーヒー付きうどん', price: 0 },
+                { name: 'やきそば', price: 0 }, 
+                { name: 'お好み焼き', price: 0 }, 
+                { name: 'うどん', price: 0 },
+                { name: 'そばめし', price: 700 },
+                { name: 'チーズおこのみ', price: 750 },
+                { name: 'カレーやきそば', price: 700 },
+                { name: 'カレーライス', price: 650 },
+                { name: 'ナポリタン', price: 650 },
+                { name: 'ミートスパゲッティ', price: 650 },
+                { name: 'カレースパゲッティ', price: 650 },
+                { name: 'やきにく定食', price: 850 },
+                { name: 'ハムエッグ定食', price: 600 },
+                { name: '野菜いため定食', price: 700 },
+                { name: 'ごはん', price: 200 },
+                { name: 'みそ汁', price: 150 },
+                { name: 'コンソメスープ', price: 150 },
+                { name: 'たまごスープ', price: 200 },
+                { name: 'ミニサラダ', price: 200 },
+                { name: 'サラダ', price: 400 },
+                { name: 'ハムエッグ', price: 450 },
+                { name: '野菜いため', price: 550 },
+                { name: 'やきにく', price: 700 }
+            ] 
+        };
+
+        const yakisobaPrices = { '肉': 650, 'イカ': 700, 'ミックス': 800 };
+        const lunchYakisobaPrices = { '肉': 500, 'イカ': 550, 'ミックス': 650 };
+        const setYakisobaPrices = { '肉': 650, 'イカ': 700, 'ミックス': 800 };
+        const coffeeYakisobaPrices = { '肉': 750, 'イカ': 800, 'ミックス': 900 }; 
+        
+        const okonomiPrices = { '肉': 650, 'イカ': 700, 'ミックス': 800 };
+        const lunchOkonomiPrices = { '肉': 500, 'イカ': 550, 'ミックス': 650 };
+        const setOkonomiPrices = { '肉': 650, 'イカ': 700, 'ミックス': 800 };
+        const coffeeOkonomiPrices = { '肉': 750, 'イカ': 800, 'ミックス': 900 }; 
+
+        const udonPrices = { '肉': 650, 'イカ': 700, 'ミックス': 800 };
+        const lunchUdonPrices = { '肉': 500, 'イカ': 550, 'ミックス': 650 };
+        const setUdonPrices = { '肉': 650, 'イカ': 700, 'ミックス': 800 };
+        const coffeeUdonPrices = { '肉': 750, 'イカ': 800, 'ミックス': 900 }; 
+
+        const sizeModifier = { 'ふつう': 0, '大盛り': 150 };
+
+        const tableNames = [];
+        for (let i = 1; i <= 5; i++) { tableNames.push(`${i}番卓`); }
+        tableNames.push('丸テーブル①', '丸テーブル②', '丸テーブル③', '丸テーブル④');
+        tableNames.push('カウンター①', 'カウンター②', 'カウンター③');
+        tableNames.push('もちかえり①', 'もちかえり②', 'もちかえり③', 'もちかえり④');
+
+        let tableOrders = {}; let tableDocIds = {};
+        tableNames.forEach(name => { tableOrders[name] = {}; tableDocIds[name] = null; });
+
+        let selectedTable = '1番卓'; let currentCategory = '飲み物';
+        let selectedIngredient = '肉'; let selectedFlavor = 'ソース'; let selectedSize = 'ふつう'; let selectedToppings = []; let finalTotal = 0;
+        let todayPaidOrdersCache = []; let todaySalesTotalCache = 0;
+        
+        let yakisobaMode = 0; 
+        let okonomiMode = 0;  
+        let udonMode = 0;     
+
+        let simpleMenuTargetName = '';
+        let simpleMenuTargetBasePrice = 0;
+        let simpleMenuSelectedSize = 'ふつう';
+
+        /* ケーキ用共通ステート */
+        let cakeTargetName = '';
+        let cakeTargetPrice = 0;
+        let cakeSelectedDrink = '';
+        let cakeIsCold = false; // ★冷たいメニューかどうかの判定用
+
+        window.onload = function() { renderTableButtons(); renderMenuButtons(); updateOrderDisplay(); calculateTodaySales(); };
+
+        function renderTableButtons() {
+            const container = document.getElementById('table-buttons-container');
+            container.innerHTML = '';
+            tableNames.forEach(name => {
+                const isActive = name === selectedTable ? 'active' : '';
+                let extraClass = '';
+                if(name.includes('丸テーブル')) extraClass = 'btn-maru';
+                if(name.includes('カウンター')) extraClass = 'btn-counter';
+                if(name.includes('もちかえり')) extraClass = 'btn-mochi';
+                container.innerHTML += `<button class="table-button ${isActive} ${extraClass}" id="btn-tbl-${name}" onclick="selectTable('${name}')">${name}</button>`;
+            });
+        }
+
+        function selectTable(tableName) {
+            selectedTable = tableName;
+            document.querySelectorAll('.table-button').forEach(btn => btn.classList.remove('active'));
+            const targetBtn = document.getElementById(`btn-tbl-${tableName}`);
+            if (targetBtn) targetBtn.classList.add('active');
+            document.getElementById('target-table-display').innerText = `選択中：${tableName}`;
+            updateOrderDisplay();
+        }
+
+        function switchCategory(cat) { 
+            currentCategory = cat; 
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); 
+            if(cat==='飲み物') document.getElementById('tab-drink').classList.add('active'); 
+            if(cat==='喫茶') document.getElementById('tab-speed').classList.add('active'); 
+            if(cat==='食事') document.getElementById('tab-main').classList.add('active'); 
+            renderMenuButtons(); 
+        }
+        
+        function addItem(name, price) { 
+            let o = tableOrders[selectedTable]; 
+            if (!o[name]) o[name] = { count: 0, price: price }; 
+            o[name].count += 1; 
+            updateOrderDisplay(); 
+        }
+        
+        function removeOneItem(name) { let o = tableOrders[selectedTable]; if (o[name]) { o[name].count -= 1; if (o[name].count <= 0) delete o[name]; updateOrderDisplay(); } }
+        
+        function openYakisobaModal(mode) { 
+            yakisobaMode = mode; 
+            selectedIngredient = '肉'; selectedFlavor = 'ソース'; selectedSize = 'ふつう'; selectedToppings = []; 
+            document.getElementById('special-note').value = ''; 
+            updateYakisobaModalButtons(); 
+            document.getElementById('yakisoba-modal').style.display = 'flex'; 
+        }
+        function selectIngredient(n) { selectedIngredient = n; updateYakisobaModalButtons(); }
+        function selectFlavor(n) { selectedFlavor = n; updateYakisobaModalButtons(); }
+        function selectSize(n) { selectedSize = n; updateYakisobaModalButtons(); } 
+        function toggleTopping(n) { const i = selectedToppings.indexOf(n); if (i > -1) selectedToppings.splice(i, 1); else selectedToppings.push(n); updateYakisobaModalButtons(); }
+        function updateYakisobaModalButtons() { 
+            document.querySelectorAll('#yakisoba-modal .opt-button').forEach(b => b.classList.remove('selected')); 
+            if (selectedIngredient === '肉') document.getElementById('item-meat').classList.add('selected'); 
+            if (selectedIngredient === 'イカ') document.getElementById('item-squid').classList.add('selected'); 
+            if (selectedIngredient === 'ミックス') document.getElementById('item-mix').classList.add('selected'); 
+            if (selectedFlavor === 'ソース') document.getElementById('item-source').classList.add('selected'); 
+            if (selectedFlavor === 'しょうゆ') document.getElementById('item-shoyu').classList.add('selected'); 
+            if (selectedSize === 'ふつう') document.getElementById('size-normal').classList.add('selected'); 
+            if (selectedSize === '大盛り') document.getElementById('size-large').classList.add('selected'); 
+            if (selectedToppings.includes('しょうがぬき')) document.getElementById('top-ginger-free').classList.add('selected'); 
+            
+            let prices = yakisobaPrices;
+            if (yakisobaMode === 1) prices = lunchYakisobaPrices;
+            if (yakisobaMode === 2) prices = setYakisobaPrices;
+            if (yakisobaMode === 3) prices = coffeeYakisobaPrices;
+
+            document.getElementById('label-meat-price').innerText = `(${prices['肉']}円)`;
+            document.getElementById('label-squid-price').innerText = `(${prices['イカ']}円)`;
+            document.getElementById('label-mix-price').innerText = `(${prices['ミックス']}円)`;
+        }
+        function closeModal() { document.getElementById('yakisoba-modal').style.display = 'none'; }
+        function submitYakisobaCustom() { 
+            try {
+                let prefix = 'やきそば';
+                if (yakisobaMode === 1) prefix = 'ランチやきそば';
+                if (yakisobaMode === 2) prefix = 'やきそばセット';
+                if (yakisobaMode === 3) prefix = 'コーヒー付きやきそば';
+
+                let menuName = `${prefix}（${selectedIngredient}・${selectedFlavor}） ${selectedSize}`; 
+                if (selectedToppings.length > 0) { menuName += ' ' + selectedToppings.map(t => `＋${t}`).join(' '); }
+                const note = document.getElementById('special-note').value.trim(); if (note !== '') menuName += ` 【注:${note}】`; 
+                
+                let basePrices = yakisobaPrices;
+                if (yakisobaMode === 1) basePrices = lunchYakisobaPrices;
+                if (yakisobaMode === 2) basePrices = setYakisobaPrices;
+                if (yakisobaMode === 3) basePrices = coffeeYakisobaPrices;
+
+                const finalPrice = basePrices[selectedIngredient] + sizeModifier[selectedSize];
+                let o = tableOrders[selectedTable]; if (!o[menuName]) o[menuName] = { count: 0, price: finalPrice }; o[menuName].count += 1; 
+                updateOrderDisplay(); closeModal(); 
+            } catch (err) { alert("確定処理でエラーが発生しました: " + err.message); }
+        }
+
+        function openOkonomiModal(mode) { 
+            okonomiMode = mode; 
+            selectedIngredient = '肉'; selectedFlavor = 'ソース'; selectedSize = 'ふつう'; selectedToppings = []; 
+            document.getElementById('okonomi-special-note').value = ''; 
+            updateOkonomiModalButtons(); 
+            document.getElementById('okonomi-modal').style.display = 'flex'; 
+        }
+        function selectOkonomiIngredient(n) { selectedIngredient = n; updateOkonomiModalButtons(); }
+        function selectOkonomiFlavor(n) { selectedFlavor = n; updateOkonomiModalButtons(); }
+        function selectOkonomiSize(n) { selectedSize = n; updateOkonomiModalButtons(); } 
+        function toggleToppingOkonomi(n) { const i = selectedToppings.indexOf(n); if (i > -1) selectedToppings.splice(i, 1); else selectedToppings.push(n); updateOkonomiModalButtons(); }
+        function updateOkonomiModalButtons() { 
+            document.querySelectorAll('#okonomi-modal .opt-button').forEach(b => b.classList.remove('selected')); 
+            if (selectedIngredient === '肉') document.getElementById('oko-meat').classList.add('selected'); 
+            if (selectedIngredient === 'イカ') document.getElementById('oko-squid').classList.add('selected'); 
+            if (selectedIngredient === 'ミックス') document.getElementById('oko-mix').classList.add('selected'); 
+            if (selectedFlavor === 'ソース') document.getElementById('oko-source').classList.add('selected'); 
+            if (selectedFlavor === 'しょうゆ') document.getElementById('oko-shoyu').classList.add('selected'); 
+            if (selectedSize === 'ふつう') document.getElementById('oko-size-normal').classList.add('selected'); 
+            if (selectedSize === '大盛り') document.getElementById('oko-size-large').classList.add('selected'); 
+            if (selectedToppings.includes('しょうがぬき')) document.getElementById('oko-top-ginger-free').classList.add('selected'); 
+            
+            let prices = okonomiPrices;
+            if (okonomiMode === 1) prices = lunchOkonomiPrices;
+            if (okonomiMode === 2) prices = setOkonomiPrices;
+            if (okonomiMode === 3) prices = coffeeOkonomiPrices;
+
+            document.getElementById('label-oko-meat-price').innerText = `(${prices['肉']}円)`;
+            document.getElementById('label-oko-squid-price').innerText = `(${prices['イカ']}円)`;
+            document.getElementById('label-oko-mix-price').innerText = `(${prices['ミックス']}円)`;
+        }
+        function closeOkonomiModal() { document.getElementById('okonomi-modal').style.display = 'none'; }
+        function submitOkonomiCustom() { 
+            try {
+                let prefix = 'お好み焼き';
+                if (okonomiMode === 1) prefix = 'ランチおこのみ';
+                if (okonomiMode === 2) prefix = 'おこのみセット';
+                if (okonomiMode === 3) prefix = 'コーヒー付きおこのみ';
+
+                let menuName = `${prefix}（${selectedIngredient}・${selectedFlavor}） ${selectedSize}`; 
+                if (selectedToppings.length > 0) { menuName += ' ' + selectedToppings.map(t => `＋${t}`).join(' '); }
+                const note = document.getElementById('okonomi-special-note').value.trim(); if (note !== '') menuName += ` 【注:${note}】`; 
+                
+                let basePrices = okonomiPrices;
+                if (okonomiMode === 1) basePrices = lunchOkonomiPrices;
+                if (okonomiMode === 2) basePrices = setOkonomiPrices;
+                if (okonomiMode === 3) basePrices = coffeeOkonomiPrices;
+
+                const finalPrice = basePrices[selectedIngredient] + sizeModifier[selectedSize];
+                let o = tableOrders[selectedTable]; if (!o[menuName]) o[menuName] = { count: 0, price: finalPrice }; o[menuName].count += 1; 
+                updateOrderDisplay(); closeOkonomiModal(); 
+            } catch (err) { alert("確定処理でエラーが発生しました: " + err.message); }
+        }
+
+        function openUdonModal(mode) { 
+            udonMode = mode; 
+            selectedIngredient = '肉'; selectedFlavor = 'ソース'; selectedSize = 'ふつう'; selectedToppings = []; 
+            document.getElementById('udon-special-note').value = ''; 
+            updateUdonModalButtons(); 
+            document.getElementById('udon-modal').style.display = 'flex'; 
+        }
+        function selectUdonIngredient(n) { selectedIngredient = n; updateUdonModalButtons(); }
+        function selectUdonFlavor(n) { selectedFlavor = n; updateUdonModalButtons(); }
+        function selectUdonSize(n) { selectedSize = n; updateUdonModalButtons(); }
+        function toggleToppingUdon(n) { const i = selectedToppings.indexOf(n); if (i > -1) selectedToppings.splice(i, 1); else selectedToppings.push(n); updateUdonModalButtons(); }
+        function updateUdonModalButtons() { 
+            document.querySelectorAll('#udon-modal .opt-button').forEach(b => b.classList.remove('selected')); 
+            if (selectedIngredient === '肉') document.getElementById('udn-meat').classList.add('selected'); 
+            if (selectedIngredient === 'イカ') document.getElementById('udn-squid').classList.add('selected'); 
+            if (selectedIngredient === 'ミックス') document.getElementById('udn-mix').classList.add('selected'); 
+            if (selectedFlavor === 'ソース') document.getElementById('udn-source').classList.add('selected'); 
+            if (selectedFlavor === 'しょうゆ') document.getElementById('udn-shoyu').classList.add('selected'); 
+            if (selectedSize === 'ふつう') document.getElementById('udn-size-normal').classList.add('selected'); 
+            if (selectedSize === '大盛り') document.getElementById('udn-size-large').classList.add('selected'); 
+            if (selectedToppings.includes('しょうがぬき')) document.getElementById('udn-top-ginger-free').classList.add('selected'); 
+            
+            let prices = udonPrices;
+            if (udonMode === 1) prices = lunchUdonPrices;
+            if (udonMode === 2) prices = setUdonPrices;
+            if (udonMode === 3) prices = coffeeUdonPrices;
+
+            document.getElementById('label-udn-meat-price').innerText = `(${prices['肉']}円)`;
+            document.getElementById('label-udn-squid-price').innerText = `(${prices['イカ']}円)`;
+            document.getElementById('label-udn-mix-price').innerText = `(${prices['ミックス']}円)`;
+        }
+        function closeUdonModal() { document.getElementById('udon-modal').style.display = 'none'; }
+        function submitUdonCustom() { 
+            try {
+                let prefix = 'うどん';
+                if (udonMode === 1) prefix = 'ランチうどん';
+                if (udonMode === 2) prefix = 'うどんセット';
+                if (udonMode === 3) prefix = 'コーヒー付きうどん';
+
+                let menuName = `${prefix}（${selectedIngredient}・${selectedFlavor}） ${selectedSize}`; 
+                if (selectedToppings.length > 0) { menuName += ' ' + selectedToppings.map(t => `＋${t}`).join(' '); }
+                const note = document.getElementById('udon-special-note').value.trim(); if (note !== '') menuName += ` 【注:${note}】`; 
+                
+                let basePrices = udonPrices;
+                if (udonMode === 1) basePrices = lunchUdonPrices;
+                if (udonMode === 2) basePrices = setUdonPrices;
+                if (udonMode === 3) basePrices = coffeeUdonPrices;
+
+                const finalPrice = basePrices[selectedIngredient] + sizeModifier[selectedSize]; 
+                let o = tableOrders[selectedTable]; if (!o[menuName]) o[menuName] = { count: 0, price: finalPrice }; o[menuName].count += 1; 
+                updateOrderDisplay(); closeUdonModal(); 
+            } catch (err) { alert("確定処理でエラーが発生しました: " + err.message); }
+        }
+
+        function openSimpleMenuModal(name, basePrice) {
+            simpleMenuTargetName = name;
+            simpleMenuTargetBasePrice = basePrice;
+            simpleMenuSelectedSize = 'ふつう';
+            document.getElementById('simple-modal-title').innerText = `${name} 設定`;
+            updateSimpleMenuModalButtons();
+            document.getElementById('simple-menu-modal').style.display = 'flex';
+        }
+        function selectSimpleSize(size) {
+            simpleMenuSelectedSize = size;
+            updateSimpleMenuModalButtons();
+        }
+        function updateSimpleMenuModalButtons() {
+            document.querySelectorAll('#simple-menu-modal .opt-button').forEach(b => b.classList.remove('selected'));
+            if (simpleMenuSelectedSize === 'ふつう') document.getElementById('simple-size-normal').classList.add('selected');
+            if (simpleMenuSelectedSize === '大盛り') document.getElementById('simple-size-large').classList.add('selected');
+        }
+        function closeSimpleMenuModal() { document.getElementById('simple-menu-modal').style.display = 'none'; }
+        function submitSimpleMenuCustom() {
+            const finalName = `${simpleMenuTargetName} ${simpleMenuSelectedSize}`;
+            const finalPrice = simpleMenuTargetBasePrice + sizeModifier[simpleMenuSelectedSize];
+            let o = tableOrders[selectedTable];
+            if (!o[finalName]) o[finalName] = { count: 0, price: finalPrice };
+            o[finalName].count += 1;
+            updateOrderDisplay();
+            closeSimpleMenuModal();
+        }
+
+        /* ★ モーダル表示ロジック（ホット・冷たい共通） */
+        function openCakeModal(name, price, isCold) {
+            cakeTargetName = name;
+            cakeTargetPrice = price;
+            cakeIsCold = isCold;
+            // 冷たいメニューの場合は初期選択をアイスコーヒーに
+            cakeSelectedDrink = isCold ? 'アイスコーヒー' : 'ブレンドコーヒー';
+            
+            document.getElementById('cake-modal-title').innerText = `${name} セット設定`;
+            
+            // 冷たいかホットかでボタンのテキストを切り替える
+            document.getElementById('cake-opt-coffee').innerText = isCold ? 'アイスコーヒー' : 'ブレンドコーヒー';
+            document.getElementById('cake-opt-tea').innerText = isCold ? 'アイスティー' : '紅茶';
+
+            updateCakeModalButtons();
+            document.getElementById('cake-modal').style.display = 'flex';
+        }
+
+        function selectCakeDrink(type) {
+            // type 1: コーヒー系, type 2: 紅茶系
+            if (type === 1) cakeSelectedDrink = cakeIsCold ? 'アイスコーヒー' : 'ブレンドコーヒー';
+            if (type === 2) cakeSelectedDrink = cakeIsCold ? 'アイスティー' : '紅茶';
+            updateCakeModalButtons();
+        }
+
+        function updateCakeModalButtons() {
+            document.querySelectorAll('#cake-modal .opt-button').forEach(b => b.classList.remove('selected'));
+            if (cakeSelectedDrink === 'ブレンドコーヒー' || cakeSelectedDrink === 'アイスコーヒー') {
+                document.getElementById('cake-opt-coffee').classList.add('selected');
+            }
+            if (cakeSelectedDrink === '紅茶' || cakeSelectedDrink === 'アイスティー') {
+                document.getElementById('cake-opt-tea').classList.add('selected');
+            }
+        }
+        function closeCakeModal() { document.getElementById('cake-modal').style.display = 'none'; }
+        function submitCakeCustom() {
+            const finalName = `${cakeTargetName}（${cakeSelectedDrink}）`;
+            let o = tableOrders[selectedTable];
+            if (!o[finalName]) o[finalName] = { count: 0, price: cakeTargetPrice };
+            o[finalName].count += 1;
+            updateOrderDisplay();
+            closeCakeModal();
+        }
+
+        function renderMenuButtons() {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = '';
+            menuData[currentCategory].forEach(item => {
+                // 特殊ボタン判定
+                if (item.name === '限定ケーキ') {
+                    // ① 限定ケーキ ホット
+                    container.innerHTML += `<button class="menu-button" style="background-color:#9575cd;" onclick="openCakeModal('${item.name}', ${item.price}, false)">限定ケーキ<br>ホットメニュ</button>`;
+                    // ② 限定ケーキ 冷たい
+                    container.innerHTML += `<button class="menu-button" style="background-color:#03a9f4;" onclick="openCakeModal('${item.name}', ${item.price}, true)">限定ケーキ<br>冷たいメニュー</button>`;
+                }
+                else if (item.name === 'チーズケーキ') {
+                    // ③ チーズケーキ ホット
+                    container.innerHTML += `<button class="menu-button" style="background-color:#9575cd;" onclick="openCakeModal('${item.name}', ${item.price}, false)">チーズケーキ<br>ホットメニュー</button>`;
+                    // ④ ★新規追加：チーズケーキ 冷たい
+                    container.innerHTML += `<button class="menu-button" style="background-color:#03a9f4;" onclick="openCakeModal('${item.name}', ${item.price}, true)">チーズケーキ<br>冷たいメニュー</button>`;
+                }
+                else if (item.name === 'ランチタイムサービスのやきそば') container.innerHTML += `<button class="menu-button" style="background-color:#ff5722;" onclick="openYakisobaModal(1)">ランチやきそば</button>`;
+                else if (item.name === 'ランチおこのみ') container.innerHTML += `<button class="menu-button" style="background-color:#e64a19;" onclick="openOkonomiModal(1)">ランチおこのみ</button>`;
+                else if (item.name === 'ランチうどん') container.innerHTML += `<button class="menu-button" style="background-color:#a1887f;" onclick="openUdonModal(1)">ランチうどん</button>`;
+                
+                else if (item.name === 'やきそばセット') container.innerHTML += `<button class="menu-button" style="background-color:#2e7d32;" onclick="openYakisobaModal(2)">やきそばセット</button>`;
+                else if (item.name === 'おこのみセット') container.innerHTML += `<button class="menu-button" style="background-color:#6a1b9a;" onclick="openOkonomiModal(2)">おこのみセット</button>`;
+                else if (item.name === 'うどんセット') container.innerHTML += `<button class="menu-button" style="background-color:#1565c0;" onclick="openUdonModal(2)">うどんセット</button>`;
+                
+                else if (item.name === 'コーヒー付きやきそば') container.innerHTML += `<button class="menu-button" style="background-color:#8d6e63;" onclick="openYakisobaModal(3)">コーヒー付やきそば</button>`;
+                else if (item.name === 'コーヒー付きおこのみ') container.innerHTML += `<button class="menu-button" style="background-color:#70574e;" onclick="openOkonomiModal(3)">コーヒー付おこのみ</button>`;
+                else if (item.name === 'コーヒー付きうどん') container.innerHTML += `<button class="menu-button" style="background-color:#5d4037;" onclick="openUdonModal(3)">コーヒー付うどん</button>`;
+
+                else if (item.name === 'やきそば') container.innerHTML += `<button class="menu-button" style="background-color:#e91e63;" onclick="openYakisobaModal(0)">やきそば</button>`;
+                else if (item.name === 'お好み焼き') container.innerHTML += `<button class="menu-button" style="background-color:#9c27b0;" onclick="openOkonomiModal(0)">お好み焼き</button>`;
+                else if (item.name === 'うどん') container.innerHTML += `<button class="menu-button" style="background-color:#00bcd4;" onclick="openUdonModal(0)">うどん</button>`;
+                
+                else if (simpleMenuNames.includes(item.name)) {
+                    container.innerHTML += `<button class="menu-button" style="background-color:#009688;" onclick="openSimpleMenuModal('${item.name}', ${item.price})">${item.name}<br>${item.price}円</button>`;
+                }
+                else {
+                    container.innerHTML += `<button class="menu-button" style="background-color:#ffa726;" onclick="addItem('${item.name}', ${item.price})">${item.name}<br>${item.price}円</button>`;
+                }
+            });
+        }
+
+        function formatTextForPrint(text) {
+            let formatted = text;
+            formatted = formatted.replace(/大盛り/g, '<span class="alert-text">大盛り</span>');
+            formatted = formatted.replace(/しょうゆ/g, '<span class="alert-text">しょうゆ</span>');
+            formatted = formatted.replace(/しょうがぬき/g, '<span class="alert-text">しょうがぬき</span>');
+            return formatted;
+        }
+
+        function updateOrderDisplay() {
+            const list = document.getElementById('order-list');
+            let o = tableOrders[selectedTable];
+            if (Object.keys(o).length === 0) { list.innerHTML = '<li>まだ注文はありません</li>'; document.getElementById('total-display').innerText = '0'; return; }
+            list.innerHTML = ''; let t = 0;
+            for (let i in o) { const safe = i.replace(/'/g, "\\'"); const c = o[i].count; const p = o[i].price; t += p * c; const displayLine = formatTextForPrint(`🗑️ ${i} (＠${p}円) × ${c}`); list.innerHTML += `<li onclick="removeOneItem('${safe}')">${displayLine}</li>`; }
+            finalTotal = t; document.getElementById('total-display').innerText = finalTotal.toLocaleString();
+        }
+
+        function setupKitchenPrintData() {
+            document.getElementById('print-table-name').innerText = selectedTable;
+            const now = new Date(); const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('print-order-time').innerText = `送信時刻: ${timeStr}`;
+            document.getElementById('print-kitchen-total').innerText = finalTotal.toLocaleString();
+        }
+
+        function setupReceiptPrintData() {
+            const now = new Date(); const dateStr = `${now.getFullYear()}年 ${now.getMonth() + 1}月 ${now.getDate()}日`;
+            document.getElementById('rcpt-date').innerText = dateStr; document.getElementById('rcpt-total').innerText = `￥${finalTotal.toLocaleString()}-`;
+        }
+
+        async function sendOrderToServer() {
+    let o = tableOrders[selectedTable]; 
+    if (Object.keys(o).length === 0) { alert('注文がありません'); return; }
+    
+    if (confirm(`${selectedTable} の注文を送信しますか？`)) {
+        
+        // ★修正ポイント：データベース送信（await）の前に、印刷画面の準備と印刷を行う！
+        document.body.classList.add('print-kitchen'); 
+        document.body.classList.remove('print-receipt'); 
+        document.body.classList.remove('print-sales-report'); 
+        setupKitchenPrintData(); 
+        window.print(); // ここでiPadの印刷ダイアログが出る
+
+        try {
+            // その後（裏側）でFirebaseへデータ送信を行う
+            let items = {}; 
+            for(let n in o) { items[n] = o[n].count; }
+            const docId = tableDocIds[selectedTable];
+            
+            if (docId) {
+                await db.collection("orders").doc(docId).update({ items: items, totalPrice: finalTotal, status: "cooking", timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            } else { 
+                const ref = await db.collection("orders").add({ tableName: selectedTable, items: items, totalPrice: finalTotal, status: "cooking", timestamp: firebase.firestore.FieldValue.serverTimestamp() }); 
+                tableDocIds[selectedTable] = ref.id; 
+            }
+        } catch (e) { 
+            alert('送信失敗'); 
+        }
+    }
+}
+
+        function openSettleModal() {
+            let o = tableOrders[selectedTable]; if (Object.keys(o).length === 0) { alert('注文がありません'); return; }
+            document.getElementById('modal-settle-table').innerText = selectedTable;
+            document.getElementById('modal-settle-total').innerText = finalTotal.toLocaleString();
+            document.getElementById('deposit-amount').value = ''; document.getElementById('change-amount-display').innerText = '0 円';
+            document.getElementById('settle-modal').style.display = 'flex';
+        }
+        function closeSettleModal() { document.getElementById('settle-modal').style.display = 'none'; }
+
+        function pressKey(key) {
+            const inputField = document.getElementById('deposit-amount'); let current = inputField.value;
+            if (key === 'C') inputField.value = ''; 
+            else if (key === '1000' || key === '5000' || key === '10000') inputField.value = key; 
+            else { if (current === '' && (key === '0' || key === '00')) return; inputField.value = current + key; }
+            calculateChange();
+        }
+
+        function calculateChange() {
+            const deposit = parseInt(document.getElementById('deposit-amount').value) || 0; const change = deposit - finalTotal; const display = document.getElementById('change-amount-display');
+            if (deposit === 0) { display.innerText = "0 円"; display.style.color = "#d84315"; } 
+            else if (change < 0) { display.innerText = "不足しています"; display.style.color = "#d32f2f"; } 
+            else { display.innerText = change.toLocaleString() + " 円"; display.style.color = "#d84315"; }
+        }
+
+        async function confirmSettleAccount() {
+    const deposit = parseInt(document.getElementById('deposit-amount').value) || 0; 
+    if (deposit < finalTotal) { alert('お預かり金額が足りていません！'); return; }
+    
+    const isReceiptNeeded = confirm("領収書を発行しますか？");
+    
+    // ★修正ポイント：データベース送信（await）の前に、印刷画面の準備と印刷を行う！
+    if (isReceiptNeeded) { 
+        document.body.classList.add('print-receipt'); 
+        document.body.classList.remove('print-kitchen'); 
+        document.body.classList.remove('print-sales-report'); 
+        setupReceiptPrintData(); 
+        window.print(); 
+    }
+
+    try {
+        let o = tableOrders[selectedTable]; 
+        const docId = tableDocIds[selectedTable]; 
+        let items = {}; 
+        for(let n in o) { items[n] = o[n].count; }
+        
+        if (docId) {
+            await db.collection("orders").doc(docId).update({ items: items, totalPrice: finalTotal, status: "paid", paidAt: firebase.firestore.FieldValue.serverTimestamp() });
+        } else { 
+            await db.collection("orders").add({ tableName: selectedTable, items: items, totalPrice: finalTotal, status: "paid", timestamp: firebase.firestore.FieldValue.serverTimestamp(), paidAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        
+        alert('お会計が完了しました！'); 
+        closeSettleModal(); 
+        tableOrders[selectedTable] = {}; 
+        tableDocIds[selectedTable] = null; 
+        updateOrderDisplay(); 
+        calculateTodaySales();
+    } catch (e) { 
+        alert('会計処理に失敗しました。'); 
+    }
+}
+
+        async function calculateTodaySales() {
+            try {
+                const start = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).getTime();
+                const snap = await db.collection("orders").where("status", "==", "paid").get();
+                let total = 0, count = 0, html = '', orders = [];
+                snap.forEach(doc => { const d = doc.data(); if (d.paidAt) orders.push({ id: doc.id, ...d }); });
+                orders.sort((a, b) => b.paidAt.toDate().getTime() - a.paidAt.toDate().getTime()); todayPaidOrdersCache = [];
+                orders.forEach(o => {
+                    const time = o.paidAt.toDate();
+                    if (time.getTime() >= start) {
+                        total += o.totalPrice || 0; count++; todayPaidOrdersCache.push(o);
+                        let sum = []; for (let k in o.items) { sum.push(`${k}×${o.items[k]}`); }
+                        html += `<div class="paid-item"><div><strong>[${time.getHours()}:${String(time.getMinutes()).padStart(2,'0')}] ${o.tableName}</strong> - ${o.totalPrice}円<br><span style="font-size:11px;color:#666;">${sum.join(', ')}</span></div><div><button style="background:#0288d1;" onclick="editPaidOrder('${o.id}', '${o.tableName}', ${HTML_escape(JSON.stringify(o.items))})">✏️</button><button style="background:#d32f2f;" onclick="deletePaidOrder('${o.id}')">❌</button></div></div>`;
+                    }
+                });
+                todaySalesTotalCache = total;
+                document.getElementById('today-sales-display').innerText = `本日の総売上: ${total.toLocaleString()} 円 (${count}組)`;
+                document.getElementById('paid-list').innerHTML = html || '<p style="text-align:center;color:#999;">本日のお会計データはありません</p>';
+            } catch (e) { alert("データ取得失敗"); }
+        }
+        function HTML_escape(str) { return str.replace(/"/g, '&quot;'); }
+
+     function printTodaySalesReport() {
+            if (todayPaidOrdersCache.length === 0) { alert("本日のお会計データ（売上明細）がないため印刷できません。"); return; }
+            
+            const now = new Date(); 
+            const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`; 
+            const timeStr = `${now.getHours()}時${String(now.getMinutes()).padStart(2, '0')}分`;
+            
+            document.getElementById('print-report-date').innerText = `${dateStr} ${timeStr} 出力`; 
+            document.getElementById('print-report-total').innerText = todaySalesTotalCache.toLocaleString(); 
+            document.getElementById('print-report-count').innerText = todayPaidOrdersCache.length;
+            
+            let listHtml = ''; 
+            const chronologicalOrders = [...todayPaidOrdersCache].reverse();
+            
+            chronologicalOrders.forEach((o, index) => {
+                const time = o.paidAt.toDate(); 
+                const tStr = `${time.getHours()}:${String(time.getMinutes()).padStart(2, '0')}分`; 
+                let itemDetails = [];
+                for (let k in o.items) { itemDetails.push(`・${k} × ${o.items[k]}`); }
+                listHtml += `<div class="report-list-item"><strong>[${index + 1}] ${tStr} - ${o.tableName}</strong><br><span style="padding-left:10px; color:#333;">${itemDetails.join('<br>')}</span><br><div style="text-align:right; font-weight:bold;">小計: ${o.totalPrice.toLocaleString()} 円</div></div>`;
+            });
+            
+            document.getElementById('print-report-list').innerHTML = listHtml;
+            document.body.classList.add('print-sales-report'); 
+            document.body.classList.remove('print-kitchen'); 
+            document.body.classList.remove('print-receipt'); 
+            
+            // ① まずは印刷画面を呼び出す
+            window.print();
+
+            // ② 印刷完了後（または閉じた後）にCSVファイルを生成してダウンロード
+            let csv = "\uFEFF"; // Excelで開いた際の文字化けを防ぐおまじない
+            csv += "No,時間,卓番号,注文内容,小計\n";
+            
+            chronologicalOrders.forEach((o, index) => {
+                const time = o.paidAt.toDate();
+                const tStr = `${time.getHours()}:${String(time.getMinutes()).padStart(2, '0')}`;
+                
+                let itemsArr = [];
+                for (let k in o.items) {
+                    itemsArr.push(`${k}×${o.items[k]}`);
+                }
+                // 商品名にカンマが含まれてもCSVが壊れないように「" "」で囲む
+                const itemsStr = `"${itemsArr.join(" / ")}"`;
+                
+                csv += `${index + 1},${tStr},${o.tableName},${itemsStr},${o.totalPrice}\n`;
+            });
+            
+            // 一番下に合計金額の行を追加
+            csv += `,,,総売上（${todayPaidOrdersCache.length}組）,${todaySalesTotalCache}\n`;
+            
+            // ファイル名を作成（例：20260627_売上明細.csv）
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const filename = `${yyyy}${mm}${dd}_売上明細.csv`;
+            
+            // CSVを自動ダウンロードさせる処理
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        async function deletePaidOrder(id) { if (confirm("削除しますか？")) { await db.collection("orders").doc(id).delete(); calculateTodaySales(); } }
+        function editPaidOrder(id, table, items) {
+            if (confirm(`${table} をレジに呼び戻しますか？`)) {
+                let res = {}; 
+                for (let n in items) { 
+                    let p = 650; 
+                    
+                    // 限定ケーキ または チーズケーキ は 500円（※アイスコーヒー等が選ばれた場合もここで拾えます）
+                    if (n.startsWith("限定ケーキ") || n.startsWith("チーズケーキ")) {
+                        p = 500;
+                    } else {
+                        for (let c in menuData) { let f = menuData[c].find(m => m.name === n); if (f) { p = f.price; break; } } 
+                    }
+                    
+                    let baseMenuName = n;
+                    if (n.endsWith(" ふつう")) baseMenuName = n.replace(" ふつう", "");
+                    else if (n.endsWith(" 大盛り")) baseMenuName = n.replace(" 大盛り", "");
+
+                    if(n.includes("やきそば") || n.includes("お好み焼き") || n.includes("うどん")) { 
+                        let currentPrices = yakisobaPrices;
+                        if (n.includes("ランチやきそば")) currentPrices = lunchYakisobaPrices;
+                        else if (n.includes("やきそばセット")) currentPrices = setYakisobaPrices;
+                        else if (n.includes("コーヒー付きやきそば")) currentPrices = coffeeYakisobaPrices;
+                        else if (n.includes("ランチおこのみ")) currentPrices = lunchOkonomiPrices;
+                        else if (n.includes("おこのみセット")) currentPrices = setOkonomiPrices;
+                        else if (n.includes("コーヒー付きおこのみ")) currentPrices = coffeeOkonomiPrices;
+                        else if (n.includes("お好み焼き")) currentPrices = okonomiPrices;
+                        else if (n.includes("ランチうどん")) currentPrices = lunchUdonPrices;
+                        else if (n.includes("うどんセット")) currentPrices = setUdonPrices;
+                        else if (n.includes("コーヒー付きうどん")) currentPrices = coffeeUdonPrices;
+                        else if (n.includes("うどん")) currentPrices = udonPrices;
+
+                        if(n.includes("イカ")) p = currentPrices['イカ']; else if(n.includes("ミックス")) p = currentPrices['ミックス']; else p = currentPrices['肉']; 
+                    } else if (simpleMenuNames.includes(baseMenuName)) {
+                        let target = menuData['食事'].find(m => m.name === baseMenuName);
+                        if (target) p = target.price;
+                    }
+                    
+                    if(n.includes("大盛り")) p += sizeModifier['大盛り']; 
+                    res[n] = { count: items[n], price: p }; 
+                }
+                tableOrders[table] = res; tableDocIds[table] = id; selectTable(table);
+            }
+        }
+        // ▼ 自由入力を注文に追加するプログラム ▼
+        function addCustomOrder() {
+            const name = document.getElementById('customName').value;
+            const priceStr = document.getElementById('customPrice').value;
+
+            // 入力チェック
+            if (name === "" || priceStr === "") {
+                alert("商品名と価格を入力してください");
+                return;
+            }
+
+            const price = parseInt(priceStr);
+
+            // システム本体の関数（addItem）を呼び出して注文履歴に追加！
+            addItem(name, price);
+
+            // 入力欄をリセット
+            document.getElementById('customName').value = "";
+            document.getElementById('customPrice').value = "";
+        }
+        // ▲ 自由入力を注文に追加するプログラム ▲
+    </script>
+</head>
+<body>
+    <div class="menu-area">
+        <h3>卓番号 / 席タイプ選択</h3>
+        <div class="table-container" id="table-buttons-container"></div>
+        
+        <h3>カテゴリー</h3>
+        <div class="tab-container">
+            <button class="tab-button" id="tab-drink" onclick="switchCategory('飲み物')">飲み物</button>
+            <button class="tab-button active" id="tab-speed" onclick="switchCategory('喫茶')">喫茶</button>
+            <button class="tab-button" id="tab-main" onclick="switchCategory('食事')">食事</button>
+        </div>
+        <div class="menu-grid" id="menu-container"></div>
+        <div class="sales-management-area">
+            <h3>📊 営業管理</h3>
+            <div style="display: flex; margin-bottom: 10px;">
+                <button class="btn-sales-calc" onclick="calculateTodaySales()">🔄 更新</button>
+                <button class="btn-sales-print" onclick="printTodaySalesReport()">🖨️ 日計印刷</button>
+            </div>
+            <p id="today-sales-display" style="font-size: 18px; font-weight: bold; color: #2e7d32; text-align: center;">集計中...</p>
+            <div class="paid-list-container" id="paid-list"></div>
+        </div>
+    </div>
+    <div class="order-area">
+        <div class="kitchen-print-header"><h2>🔥 厨房伝票 🔥</h2><div id="print-table-name">--</div><p id="print-order-time">--:--</p><hr style="border-top: 3px solid #000;"></div>
+        <div id="target-table-display">選択中：1番卓</div>
+        <h2>注文履歴</h2><ul id="order-list"><li>なし</li></ul>
+        <div class="total-price-box"><h3>合計: <span id="total-display">0</span>円</h3></div>
+        <button class="submit-button" onclick="sendOrderToServer()">厨房へ送信</button>
+        <div class="print-btn-area"><button class="print-button btn-settle" onclick="openSettleModal()">💰 会計確定</button></div>
+        <div class="kitchen-print-footer"><h3>合計金額: <span id="print-kitchen-total">0</span>円</h3></div>
+    </div>
+    
+    <div class="receipt-print-area">
+        <div class="receipt-title">領 収 書</div>
+        <div id="rcpt-date" style="text-align: right;">--</div>
+        <div class="receipt-client-name"><strong>御中</strong></div>
+        <div class="receipt-amount-box">金額 <span id="rcpt-total">￥0-</span></div>
+        <div style="text-align: center;">但し お食事代として 正に領収いたしました</div>
+        <div class="receipt-shop-info"><div style="font-size: 20px; font-weight: bold;">お食事処 店舗名</div><div>TEL: 00-0000-0000</div></div>
+    </div>
+    
+    <div class="sales-report-print-area"><div class="report-header"><h2>営業集計報告書</h2><div id="print-report-date" style="text-align: right;">--</div></div><div class="report-summary-box">■ 総売上： <span id="print-report-total" style="float:right">0</span>円<br>■ 客数： <span id="print-report-count" style="float:right">0</span>組</div><div id="print-report-list"></div></div>
+    
+    <div class="modal-overlay" id="yakisoba-modal">
+        <div class="modal-content">
+            <h2>やきそば・セット設定</h2>
+            <h3>① 具材</h3>
+            <button class="opt-button" id="item-meat" onclick="selectIngredient('肉')">肉<br><span id="label-meat-price">(500円)</span></button>
+            <button class="opt-button" id="item-squid" onclick="selectIngredient('イカ')">イカ<br><span id="label-squid-price">(550円)</span></button>
+            <button class="opt-button" id="item-mix" onclick="selectIngredient('ミックス')">ミックス<br><span id="label-mix-price">(650円)</span></button>
+            <h3>② サイズ</h3>
+            <button class="opt-button" id="size-normal" onclick="selectSize('ふつう')">ふつう<br>(+0円)</button>
+            <button class="opt-button" id="size-large" onclick="selectSize('大盛り')">大盛り<br>(+150円)</button>
+            <h3>③ 味・トッピング</h3>
+            <button class="opt-button" id="item-source" onclick="selectFlavor('ソース')">ソース</button>
+            <button class="opt-button" id="item-shoyu" onclick="selectFlavor('しょうゆ')">しょうゆ</button>
+            <button class="opt-button" id="top-ginger-free" onclick="toggleTopping('しょうがぬき')">しょうがぬき</button>
+            <br>
+            <input type="text" id="special-note" placeholder="メモ（白ご飯大盛り・ドリンク等）" style="width:80%; margin:10px; padding:10px; font-size:18px;">
+            <br>
+            <button onclick="closeModal()" style="width:40%; height:50px;">戻る</button>
+            <button onclick="submitYakisobaCustom()" style="width:40%; height:50px; background:#4caf50; color:white;">確定</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="okonomi-modal">
+        <div class="modal-content">
+            <h2>お好み焼き・セット設定</h2>
+            <h3>① 具材</h3>
+            <button class="opt-button" id="oko-meat" onclick="selectOkonomiIngredient('肉')">肉<br><span id="label-oko-meat-price">(650円)</span></button>
+            <button class="opt-button" id="oko-squid" onclick="selectOkonomiIngredient('イカ')">イカ<br><span id="label-oko-squid-price">(700円)</span></button>
+            <button class="opt-button" id="oko-mix" onclick="selectOkonomiIngredient('ミックス')">ミックス<br><span id="label-oko-mix-price">(800円)</span></button>
+            <h3>② サイズ</h3>
+            <button class="opt-button" id="oko-size-normal" onclick="selectOkonomiSize('ふつう')">ふつう<br>(+0円)</button>
+            <button class="opt-button" id="oko-size-large" onclick="selectOkonomiSize('大盛り')">大盛り<br>(+150円)</button>
+            <h3>③ 味・トッピング</h3>
+            <button class="opt-button" id="oko-source" onclick="selectOkonomiFlavor('ソース')">ソース</button>
+            <button class="opt-button" id="oko-shoyu" onclick="selectOkonomiFlavor('しょうゆ')">しょうゆ</button>
+            <button class="opt-button" id="oko-top-ginger-free" onclick="toggleToppingOkonomi('しょうがぬき')">しょうがぬき</button>
+            <br>
+            <input type="text" id="okonomi-special-note" placeholder="メモ（ご飯セット・ドリンク等）" style="width:80%; margin:10px; padding:10px; font-size:18px;">
+            <br>
+            <button onclick="closeOkonomiModal()" style="width:40%; height:50px;">戻る</button>
+            <button onclick="submitOkonomiCustom()" style="width:40%; height:50px; background:#4caf50; color:white;">確定</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="udon-modal">
+        <div class="modal-content">
+            <h2>うどん・セット設定</h2>
+            <h3>① 具材</h3>
+            <button class="opt-button" id="udn-meat" onclick="selectUdonIngredient('肉')">肉<br><span id="label-udn-meat-price">(650円)</span></button>
+            <button class="opt-button" id="udn-squid" onclick="selectUdonIngredient('イカ')">イカ<br><span id="label-udn-squid-price">(700円)</span></button>
+            <button class="opt-button" id="udn-mix" onclick="selectUdonIngredient('ミックス')">ミックス<br><span id="label-udn-mix-price">(800円)</span></button>
+            <h3>② サイズ</h3>
+            <button class="opt-button" id="udn-size-normal" onclick="selectUdonSize('ふつう')">ふつう<br>(+0円)</button>
+            <button class="opt-button" id="udn-size-large" onclick="selectUdonSize('大盛り')">大盛り<br>(+150円)</button>
+            <h3>③ 味・トッピング</h3>
+            <button class="opt-button" id="udn-source" onclick="selectUdonFlavor('ソース')">ソース</button>
+            <button class="opt-button" id="udn-shoyu" onclick="selectUdonFlavor('しょうゆ')">しょうゆ</button>
+            <button class="opt-button" id="udn-top-ginger-free" onclick="toggleToppingUdon('しょうがぬき')">しょうがぬき</button>
+            <br>
+            <input type="text" id="udon-special-note" placeholder="メモ（おにぎりセット・トッピング等）" style="width:80%; margin:10px; padding:10px; font-size:18px;">
+            <br>
+            <button onclick="closeUdonModal()" style="width:40%; height:50px;">戻る</button>
+            <button onclick="submitUdonCustom()" style="width:40%; height:50px; background:#4caf50; color:white;">確定</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="simple-menu-modal">
+        <div class="modal-content" style="border: 3px solid #009688;">
+            <h2 id="simple-modal-title">メニュー設定</h2>
+            <h3>サイズを選択してください</h3>
+            <button class="opt-button" id="simple-size-normal" onclick="selectSimpleSize('ふつう')">ふつう<br>(+0円)</button>
+            <button class="opt-button" id="simple-size-large" onclick="selectSimpleSize('大盛り')">大盛り<br>(+150円)</button>
+            <br><br>
+            <button onclick="closeSimpleMenuModal()" style="width:40%; height:50px;">戻る</button>
+            <button onclick="submitSimpleMenuCustom()" style="width:40%; height:50px; background:#4caf50; color:white;">確定</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="cake-modal">
+        <div class="modal-content" style="border: 3px solid #9575cd;">
+            <h2 id="cake-modal-title">セット設定</h2>
+            <h3>セットの、お飲み物を選択してください</h3>
+            <button class="opt-button" id="cake-opt-coffee" style="width: 160px;" onclick="selectCakeDrink(1)">ブレンドコーヒー</button>
+            <button class="opt-button" id="cake-opt-tea" style="width: 160px;" onclick="selectCakeDrink(2)">紅茶</button>
+            <br><br>
+            <button onclick="closeCakeModal()" style="width:40%; height:50px;">戻る</button>
+            <button onclick="submitCakeCustom()" style="width:40%; height:50px; background:#4caf50; color:white;">確定</button>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="settle-modal">
+        <div class="modal-content" style="border: 3px solid #ff5722;">
+            <h2 style="color: #ff5722;"><span id="modal-settle-table">--</span> お会計</h2>
+            <div style="font-size: 22px; font-weight: bold;">合計: <span id="modal-settle-total">0</span> 円</div>
+            <input type="number" id="deposit-amount" class="settle-input-field" placeholder="預かり金" readonly>
+            <div class="keypad-container">
+                <button class="keypad-button" onclick="pressKey('7')">7</button>
+                <button class="keypad-button" onclick="pressKey('8')">8</button>
+                <button class="keypad-button" onclick="pressKey('9')">9</button>
+                <button class="keypad-button fn-key" onclick="pressKey('10000')">1万円</button>
+                <button class="keypad-button" onclick="pressKey('4')">4</button>
+                <button class="keypad-button" onclick="pressKey('5')">5</button>
+                <button class="keypad-button" onclick="pressKey('6')">6</button>
+                <button class="keypad-button fn-key" onclick="pressKey('5000')">5千円</button>
+                <button class="keypad-button" onclick="pressKey('1')">1</button>
+                <button class="keypad-button" onclick="pressKey('2')">2</button>
+                <button class="keypad-button" onclick="pressKey('3')">3</button>
+                <button class="keypad-button fn-key" onclick="pressKey('1000')">1千円</button>
+                <button class="keypad-button" onclick="pressKey('0')">0</button>
+                <button class="keypad-button" onclick="pressKey('00')">00</button>
+                <button class="keypad-button clear-key" onclick="pressKey('C')">C</button>
+                <button class="keypad-button fn-key" style="background-color:#c8e6c9; color:#2e7d32;" onclick="calculateChange()">計算</button>
+            </div>
+            <div class="change-display-box">お釣り: <span class="change-amount" id="change-amount-display">0 円</span></div>
+            <div style="margin-top: 15px;">
+                <button onclick="closeSettleModal()" style="width: 44%; height: 50px; font-size:18px; font-weight:bold;">戻る</button>
+                <button onclick="confirmSettleAccount()" style="width: 44%; height: 50px; font-size:18px; font-weight:bold; background:#4caf50; color: white; border:none; border-radius:5px; cursor:pointer;">確定</button>
+            </div>
+        </div>
+    </div>
+    <!-- ▼ 自由入力エリア（新しいコード）▼ -->
+<div style="margin: 2px; padding: 2px; background-color: #fffde7; border: 2px dashed #fdd835; border-radius: 8px; font-size: 14px;">
+    <strong style="display: block; margin-bottom: 5px;">自由入力:</strong>
+    <div style="display: flex; gap: 5px; align-items: center;">
+        <input type="text" id="customName" placeholder="商品名" style="width: 100px; padding: 3px;">
+        <input type="number" id="customPrice" placeholder="価格" style="width: 60px; padding: 3px;">
+        <span>円</span>
+        <button onclick="addCustomOrder()" style="padding: 3px 8px; font-size: 12px; background-color: #fdd835; border: none; border-radius: 4px;">追加</button>
+    </div>
+</div>
+<!-- ▲ 自由入力エリア（新しいコード）▲ -->
+</body>
+</html>
